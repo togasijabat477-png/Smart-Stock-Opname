@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#10141d">
+  <title>Smart Stock Analytics</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.81.1/dist/umd/supabase.js" defer></script>
+  <script src="./script.js" defer></script>
+</head>
+<body>
+  <div id="login-screen" class="login-screen">
+  <form id="login-form" class="panel stack-form">
+    <h1 style="margin:0">Smart Stock Analytics</h1>
+    <p class="muted">Masuk dengan akun yang dibuat pemilik toko.</p>
+    <label>Email<input name="email" type="email" required autocomplete="username"></label>
+    <label>Kata sandi<input name="password" type="password" required autocomplete="current-password"></label>
+    <p id="login-error" role="alert" style="color:#ff6b6b;margin:0"></p>
+    <button class="button button-primary" type="submit">Masuk</button>
+  </form>
+</div>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <a class="brand" href="#dashboard" aria-label="Smart Stock Analytics, Dashboard">
+        <span class="brand-mark" aria-hidden="true">S</span>
+        <span class="brand-name">Smart Stock <strong>Analytics</strong></span>
+      </a>
+
+      <nav class="side-nav" aria-label="Navigasi utama">
+        <p class="nav-caption">Utama</p>
+        <a class="nav-link is-active" href="#dashboard" data-view="dashboard"><span class="nav-icon">⌂</span>Dashboard</a>
+        <a class="nav-link" href="#inventaris" data-view="inventaris"><span class="nav-icon">▦</span>Inventaris<span class="nav-badge" id="low-stock-badge">0</span></a>
+
+        <p class="nav-caption">Transaksi</p>
+        <a class="nav-link" href="#pemasukan" data-view="pemasukan"><span class="nav-icon">↙</span>Pemasukan</a>
+        <a class="nav-link" href="#pengeluaran" data-view="pengeluaran"><span class="nav-icon">↗</span>Pengeluaran</a>
+
+        <p class="nav-caption">Analitik</p>
+        <a class="nav-link" href="#analisis" data-view="analisis"><span class="nav-icon">◷</span>Analisis Statistik</a>
+        <a class="nav-link" href="#margin" data-view="margin"><span class="nav-icon">⌁</span>Analisis Margin</a>
+        <a class="nav-link" href="#laporan" data-view="laporan"><span class="nav-icon">▤</span>Laporan</a>
+
+        <p class="nav-caption">Sistem</p>
+        <a class="nav-link" href="#pengaturan" data-view="pengaturan"><span class="nav-icon">⚙</span>Data &amp; Backup</a>
+      </nav>
+
+      <div class="sidebar-bottom">
+        <span class="status-dot"></span>
+        <div><strong>Data tersimpan lokal</strong><small>Backup rutin lewat menu Data &amp; Backup.</small></div>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <button class="icon-button mobile-menu" id="sidebar-toggle" type="button" aria-label="Buka navigasi">☰</button>
+        <label class="global-search">
+          <span aria-hidden="true">⌕</span>
+          <input id="global-search" type="search" placeholder="Cari barang, transaksi, menu…" autocomplete="off">
+          <kbd>Ctrl K</kbd>
+          <div class="search-results" id="search-results" hidden></div>
+        </label>
+        <div class="topbar-actions">
+          <span class="current-date" id="current-date"></span>
+          <button class="icon-button notification-button" type="button" aria-label="Notifikasi stok">
+            ♧<span class="notification-count" id="notification-count">0</span>
+          </button>
+          <button class="button button-secondary" type="button" id="logout-button">Keluar</button>
+          <div class="profile-chip"><span class="avatar">P</span><span><small id="profile-owner-name">Pemilik Toko</small><strong id="profile-store-name">Toko Maju</strong></span></div>
+        </div>
+      </header>
+
+      <div class="page-container">
+        <section class="page-view" id="view-dashboard" data-page="dashboard">
+          <div class="page-heading heading-with-actions">
+            <div>
+              <p class="eyebrow" id="dashboard-store-name">Toko Maju · Live</p>
+              <h1>Dashboard Bisnis</h1>
+              <p class="muted">Semua angka dihitung otomatis dari transaksi yang tercatat.</p>
+            </div>
+            <div class="heading-actions">
+              <div class="segmented-control" aria-label="Rentang waktu dashboard">
+                <button type="button" data-range="7">7H</button>
+                <button class="is-selected" type="button" data-range="30">30H</button>
+                <button type="button" data-range="90">90H</button>
+                <button type="button" data-range="all">Semua</button>
+              </div>
+              <button class="button button-primary" type="button" data-open-dialog="sale-dialog">＋ Catat Penjualan</button>
+            </div>
+          </div>
+
+          <section class="metric-grid" aria-label="Ringkasan bisnis">
+            <article class="metric-card"><div class="metric-top"><span>Total Nilai Stok</span><span class="metric-icon purple">▦</span></div><strong id="metric-stock-value">Rp 0</strong><small id="metric-stock-note">Nilai berdasarkan harga modal</small></article>
+            <article class="metric-card"><div class="metric-top"><span>Pemasukan Hari Ini</span><span class="metric-icon green">↙</span></div><strong id="metric-income-today">Rp 0</strong><small id="metric-income-count">0 transaksi</small></article>
+            <article class="metric-card"><div class="metric-top"><span>Pengeluaran Hari Ini</span><span class="metric-icon red">↗</span></div><strong id="metric-expense-today">Rp 0</strong><small>Termasuk pembelian stok</small></article>
+            <article class="metric-card"><div class="metric-top"><span>Laba Bersih 30H</span><span class="metric-icon blue">⌁</span></div><strong id="metric-net-profit">Rp 0</strong><small>Perkiraan dari transaksi tersimpan</small></article>
+            <article class="metric-card"><div class="metric-top"><span>Total Transaksi 30H</span><span class="metric-icon amber">▤</span></div><strong id="metric-transactions">0</strong><small id="metric-revenue-note">Omzet Rp 0</small></article>
+            <article class="metric-card"><div class="metric-top"><span>Barang Tersedia</span><span class="metric-icon green">✓</span></div><strong id="metric-available">0 / 0</strong><small>SKU dengan stok lebih dari 0</small></article>
+            <article class="metric-card"><div class="metric-top"><span>Stok Menipis</span><span class="metric-icon red">!</span></div><strong id="metric-low-stock">0</strong><small id="metric-critical-note">Barang di bawah stok minimum</small></article>
+            <article class="metric-card"><div class="metric-top"><span>Margin Rata-rata</span><span class="metric-icon purple">%</span></div><strong id="metric-margin">0%</strong><small>Rata-rata margin per barang</small></article>
+          </section>
+
+          <section class="panel chart-panel">
+            <div class="panel-heading">
+              <div><h2>Pergerakan Pendapatan</h2><p class="muted">Ringkasan pemasukan dan pengeluaran berdasarkan transaksi.</p></div>
+              <div class="chart-legend"><span><i class="legend-dot income"></i>Pendapatan</span><span><i class="legend-dot expense"></i>Pengeluaran</span></div>
+            </div>
+            <div class="chart-wrap"><svg id="dashboard-chart" class="line-chart" viewBox="0 0 900 250" role="img" aria-label="Grafik pemasukan dan pengeluaran harian"></svg></div>
+          </section>
+
+          <div class="content-grid dashboard-lower">
+            <section class="panel">
+              <div class="panel-heading"><div><h2>Perlu Perhatian</h2><p class="muted">Stok di bawah atau mendekati batas minimum.</p></div><a class="text-link" href="#inventaris" data-view="inventaris">Lihat inventaris →</a></div>
+              <div class="attention-list" id="attention-list"></div>
+            </section>
+            <section class="panel">
+              <div class="panel-heading"><div><h2>Terlaris</h2><p class="muted">Berdasarkan jumlah barang terjual.</p></div><a class="text-link" href="#laporan" data-view="laporan">Lihat laporan →</a></div>
+              <ol class="best-seller-list" id="best-seller-list"></ol>
+            </section>
+          </div>
+        </section>
+
+        <section class="page-view" id="view-inventaris" data-page="inventaris" hidden>
+          <div class="page-heading heading-with-actions">
+            <div><p class="eyebrow">INVENTORY</p><h1>Inventaris Barang</h1><p class="muted">Stok berkurang otomatis saat penjualan dicatat dan bertambah saat pembelian stok dicatat.</p></div>
+            <button class="button button-primary" type="button" data-open-dialog="product-dialog">＋ Tambah Barang</button>
+          </div>
+          <section class="panel">
+            <div class="toolbar">
+              <label class="field-search"><span>⌕</span><input id="inventory-search" type="search" placeholder="Cari nama, SKU, supplier…"></label>
+              <select id="category-filter" aria-label="Filter kategori"><option value="">Semua kategori</option></select>
+              <select id="stock-filter" aria-label="Filter kondisi"><option value="">Semua kondisi</option><option value="low">Stok menipis</option><option value="out">Stok habis</option><option value="available">Stok tersedia</option></select>
+              <select id="inventory-sort" aria-label="Urutkan inventaris"><option value="name">Urut: Nama</option><option value="stock-asc">Stok terendah</option><option value="stock-desc">Stok tertinggi</option><option value="value-desc">Nilai stok terbesar</option></select>
+            </div>
+            <div class="table-wrap">
+              <table><thead><tr><th>Barang</th><th>SKU</th><th>Kategori</th><th>Stok</th><th>Harga Modal</th><th>Harga Jual</th><th>Margin</th><th class="align-right">Aksi</th></tr></thead><tbody id="inventory-rows"></tbody></table>
+            </div>
+            <p class="table-summary" id="inventory-summary"></p>
+          </section>
+        </section>
+
+        <section class="page-view" id="view-pemasukan" data-page="pemasukan" hidden>
+          <div class="page-heading heading-with-actions">
+            <div><p class="eyebrow">TRANSAKSI</p><h1>Pencatatan Pemasukan</h1><p class="muted">Catat penjualan barang dan pantau pemasukan toko.</p></div>
+            <button class="button button-primary" type="button" data-open-dialog="sale-dialog">＋ Catat Penjualan</button>
+          </div>
+          <section class="metric-grid compact-grid">
+            <article class="metric-card"><span class="muted">Total Pemasukan</span><strong id="income-total">Rp 0</strong></article>
+            <article class="metric-card"><span class="muted">Jumlah Transaksi</span><strong id="income-count">0</strong></article>
+            <article class="metric-card"><span class="muted">Rata-rata Transaksi</span><strong id="income-average">Rp 0</strong></article>
+          </section>
+          <section class="panel">
+            <div class="toolbar">
+              <label class="field-search"><span>⌕</span><input id="sales-search" type="search" placeholder="Cari nama barang atau kategori…"></label>
+              <select id="payment-filter" aria-label="Filter metode pembayaran"><option value="">Semua metode</option><option>Tunai</option><option>Transfer</option><option>QRIS</option><option>Kartu</option></select>
+              <label class="date-filter">Dari <input id="sales-from" type="date" aria-label="Dari tanggal"></label>
+              <label class="date-filter">Sampai <input id="sales-to" type="date" aria-label="Sampai tanggal"></label>
+            </div>
+            <div class="table-wrap"><table><thead><tr><th>Tanggal</th><th>Barang</th><th>Qty</th><th>Metode</th><th>Total</th><th class="align-right">Aksi</th></tr></thead><tbody id="sales-rows"></tbody></table></div>
+            <p class="table-summary" id="sales-summary"></p>
+          </section>
+        </section>
+
+        <section class="page-view" id="view-pengeluaran" data-page="pengeluaran" hidden>
+          <div class="page-heading heading-with-actions">
+            <div><p class="eyebrow">TRANSAKSI</p><h1>Pencatatan Pengeluaran</h1><p class="muted">Pantau pembelian stok dan biaya operasional toko.</p></div>
+            <button class="button button-primary" type="button" data-open-dialog="expense-dialog">＋ Catat Pengeluaran</button>
+          </div>
+          <section class="metric-grid compact-grid">
+            <article class="metric-card"><span class="muted">Total Pengeluaran</span><strong id="expense-total">Rp 0</strong></article>
+            <article class="metric-card"><span class="muted">Pengeluaran Operasional</span><strong id="operating-expense-total">Rp 0</strong></article>
+            <article class="metric-card"><span class="muted">Jumlah Catatan</span><strong id="expense-count">0</strong></article>
+          </section>
+          <section class="panel">
+            <div class="toolbar">
+              <label class="field-search"><span>⌕</span><input id="expense-search" type="search" placeholder="Cari deskripsi…"></label>
+              <select id="expense-category-filter" aria-label="Filter kategori pengeluaran"><option value="">Semua kategori</option><option>Operasional</option><option>Pembelian Stok</option><option>Transportasi</option><option>Lainnya</option></select>
+              <label class="date-filter">Dari <input id="expenses-from" type="date" aria-label="Dari tanggal"></label>
+              <label class="date-filter">Sampai <input id="expenses-to" type="date" aria-label="Sampai tanggal"></label>
+            </div>
+            <div class="table-wrap"><table><thead><tr><th>Tanggal</th><th>Deskripsi</th><th>Kategori</th><th>Catatan</th><th>Jumlah</th><th class="align-right">Aksi</th></tr></thead><tbody id="expense-rows"></tbody></table></div>
+            <p class="table-summary" id="expense-summary"></p>
+          </section>
+          <section class="panel category-panel"><div class="panel-heading"><div><h2>Komposisi per Kategori</h2><p class="muted">Pengeluaran berdasarkan kategori.</p></div></div><div id="expense-category-summary" class="category-summary"></div></section>
+        </section>
+
+        <section class="page-view" id="view-analisis" data-page="analisis" hidden>
+          <div class="page-heading"><p class="eyebrow">ANALITIK</p><h1>Business Statistical Analysis</h1><p class="muted">Ringkasan statistik berdasarkan data transaksi dan inventaris.</p></div>
+          <div class="tab-list" role="tablist" aria-label="Jenis analisis">
+            <button class="tab-button is-active" role="tab" aria-selected="true" data-analysis-tab="deskriptif">Deskriptif</button>
+            <button class="tab-button" role="tab" aria-selected="false" data-analysis-tab="penjualan">Penjualan</button>
+            <button class="tab-button" role="tab" aria-selected="false" data-analysis-tab="keuangan">Keuangan</button>
+            <button class="tab-button" role="tab" aria-selected="false" data-analysis-tab="korelasi">Korelasi</button>
+            <button class="tab-button" role="tab" aria-selected="false" data-analysis-tab="forecasting">Forecasting</button>
+            <button class="tab-button" role="tab" aria-selected="false" data-analysis-tab="visualisasi">Visualisasi</button>
+          </div>
+          <section class="analysis-panel" data-analysis-panel="deskriptif">
+            <div class="section-title"><h2>Variabel</h2><span class="muted">Statistik ringkas saat ini</span></div>
+            <div class="table-wrap"><table><thead><tr><th>Variabel</th><th>Jumlah</th><th>Rata-rata</th><th>Nilai tertinggi</th><th>Nilai terendah</th></tr></thead><tbody id="analysis-rows"></tbody></table></div>
+          </section>
+          <section class="analysis-panel" data-analysis-panel="penjualan" hidden><div class="panel"><h2>Analisis Penjualan</h2><p id="sales-analysis-copy" class="muted"></p><div class="insight-grid" id="sales-insights"></div></div></section>
+          <section class="analysis-panel" data-analysis-panel="keuangan" hidden><div class="panel"><h2>Ringkasan Keuangan</h2><p id="finance-analysis-copy" class="muted"></p><div class="insight-grid" id="finance-insights"></div></div></section>
+          <section class="analysis-panel" data-analysis-panel="korelasi" hidden><div class="panel"><h2>Korelasi Stok dan Penjualan</h2><p class="muted">Perbandingan kuantitas stok dengan barang yang tercatat terjual.</p><div class="table-wrap"><table><thead><tr><th>Barang</th><th>Stok saat ini</th><th>Unit terjual</th><th>Indikasi</th></tr></thead><tbody id="correlation-rows"></tbody></table></div></div></section>
+          <section class="analysis-panel" data-analysis-panel="forecasting" hidden><div class="panel"><h2>Forecasting Sederhana</h2><p class="muted">Estimasi berdasarkan rata-rata penjualan harian yang tercatat.</p><div id="forecast-list" class="insight-grid"></div></div></section>
+          <section class="analysis-panel" data-analysis-panel="visualisasi" hidden><div class="panel"><h2>Visualisasi Penjualan</h2><svg id="analysis-chart" class="line-chart" viewBox="0 0 900 250" role="img" aria-label="Grafik penjualan"></svg></div></section>
+        </section>
+
+        <section class="page-view" id="view-margin" data-page="margin" hidden>
+          <div class="page-heading"><p class="eyebrow">ANALITIK</p><h1>Analisis Margin ala Trading</h1><p class="muted">Pantau selisih harga modal dan harga jual setiap produk.</p></div>
+          <section class="metric-grid compact-grid">
+            <article class="metric-card"><span class="muted">Margin Kotor Rata-rata</span><strong id="margin-average">0%</strong></article>
+            <article class="metric-card"><span class="muted">Produk dengan Margin Tertinggi</span><strong id="margin-highest">-</strong></article>
+            <article class="metric-card"><span class="muted">Produk dengan Margin Terendah</span><strong id="margin-lowest">-</strong></article>
+          </section>
+          <section class="panel"><div class="panel-heading"><div><h2>Perbandingan Margin Antarproduk</h2><p class="muted">Persentase margin dihitung dari harga modal dan harga jual.</p></div></div><div class="table-wrap"><table><thead><tr><th>Produk</th><th>Kategori</th><th>Harga Modal</th><th>Harga Jual</th><th>Margin</th><th>Visual</th></tr></thead><tbody id="margin-rows"></tbody></table></div></section>
+        </section>
+
+        <section class="page-view" id="view-laporan" data-page="laporan" hidden>
+          <div class="page-heading heading-with-actions"><div><p class="eyebrow">RINGKASAN</p><h1>Laporan Bisnis</h1><p class="muted">Tinjau dan unduh ringkasan transaksi bisnis.</p></div><div class="heading-actions"><button class="button button-secondary" type="button" data-export="csv">Unduh CSV</button><button class="button button-secondary" type="button" data-print>Print</button></div></div>
+          <section class="metric-grid compact-grid">
+            <article class="metric-card"><span class="muted">Total Penjualan</span><strong id="report-sales-total">Rp 0</strong></article>
+            <article class="metric-card"><span class="muted">Total Pengeluaran</span><strong id="report-expense-total">Rp 0</strong></article>
+            <article class="metric-card"><span class="muted">Laba Bersih</span><strong id="report-profit-total">Rp 0</strong></article>
+          </section>
+          <section class="panel">
+            <div class="panel-heading"><div><h2>Laporan Penjualan</h2><p class="muted">Rincian pemasukan yang tersimpan.</p></div></div>
+            <div class="toolbar"><label class="date-filter">Dari <input id="report-from" type="date" aria-label="Dari tanggal"></label><label class="date-filter">Sampai <input id="report-to" type="date" aria-label="Sampai tanggal"></label><select id="report-category"><option value="">Semua kategori</option></select></div>
+            <div class="table-wrap"><table><thead><tr><th>Tanggal</th><th>Barang</th><th>Kategori</th><th>Qty</th><th>Metode</th><th>Total</th></tr></thead><tbody id="report-rows"></tbody></table></div>
+            <p class="table-summary" id="report-summary"></p>
+          </section>
+        </section>
+
+        <section class="page-view" id="view-pengaturan" data-page="pengaturan" hidden>
+          <div class="page-heading"><p class="eyebrow">SISTEM</p><h1>Data &amp; Backup</h1><p class="muted">Atur profil toko dan kelola salinan data lokal.</p></div>
+          <div class="settings-grid">
+            <section class="panel">
+              <div class="panel-heading"><div><h2>Profil Toko</h2><p class="muted">Informasi yang ditampilkan pada dashboard.</p></div></div>
+              <form id="profile-form" class="stack-form">
+                <label>Nama toko<input name="storeName" id="settings-store-name" required maxlength="60"></label>
+                <label>Nama pemilik<input name="ownerName" id="settings-owner-name" maxlength="60"></label>
+                <button class="button button-primary" type="submit">Simpan Profil</button>
+              </form>
+            </section>
+            <section class="panel">
+              <div class="panel-heading"><div><h2>Ringkasan Data</h2><p class="muted">Data disimpan di browser ini.</p></div></div>
+              <dl class="data-summary"><div><dt>Barang</dt><dd id="settings-product-count">0</dd></div><div><dt>Transaksi pemasukan</dt><dd id="settings-sale-count">0</dd></div><div><dt>Catatan pengeluaran</dt><dd id="settings-expense-count">0</dd></div></dl>
+            </section>
+            <section class="panel">
+              <div class="panel-heading"><div><h2>Backup &amp; Restore JSON</h2><p class="muted">Simpan atau pulihkan salinan data toko.</p></div></div>
+              <div class="button-row"><button class="button button-secondary" type="button" data-export="json">Download Backup</button><label class="button button-secondary file-button">Restore dari File<input id="restore-file" type="file" accept="application/json,.json" hidden></label></div>
+            </section>
+            <section class="panel danger-panel">
+              <div class="panel-heading"><div><h2>Zona Berbahaya</h2><p class="muted">Aksi ini akan mengubah atau menghapus data lokal.</p></div></div>
+              <div class="button-row"><button class="button button-secondary" type="button" id="load-demo">Muat Data Demo</button><button class="button button-danger" type="button" id="clear-data">Kosongkan Data</button></div>
+            </section>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <dialog class="modal" id="product-dialog">
+    <form class="modal-card" id="product-form">
+      <div class="modal-heading"><div><p class="eyebrow">INVENTARIS</p><h2 id="product-dialog-title">Tambah Barang</h2></div><button class="icon-button" type="button" data-close-dialog aria-label="Tutup">×</button></div>
+      <input type="hidden" name="id">
+      <div class="form-grid">
+        <label>Nama barang<input name="name" required maxlength="100" placeholder="Contoh: Beras Premium 5kg"></label>
+        <label>SKU<input name="sku" required maxlength="30" placeholder="Contoh: SBK-001"></label>
+        <label>Kategori<select name="category" required><option value="">Pilih kategori</option><option>Sembako</option><option>Minuman</option><option>Makanan</option><option>Kebersihan</option><option>Perawatan</option><option>ATK</option><option>Lainnya</option></select></label>
+        <label>Jumlah stok<input name="stock" type="number" min="0" step="1" value="0" required></label>
+        <label>Stok minimum<input name="minimum" type="number" min="0" step="1" value="5" required></label>
+        <label>Harga modal<input name="cost" type="number" min="0" step="100" required></label>
+        <label>Harga jual<input name="price" type="number" min="0" step="100" required></label>
+      </div>
+      <div class="modal-actions"><button class="button button-secondary" type="button" data-close-dialog>Batal</button><button class="button button-primary" type="submit">Simpan Barang</button></div>
+    </form>
+  </dialog>
+
+  <dialog class="modal" id="sale-dialog">
+    <form class="modal-card" id="sale-form">
+      <div class="modal-heading"><div><p class="eyebrow">TRANSAKSI</p><h2>Catat Penjualan</h2></div><button class="icon-button" type="button" data-close-dialog aria-label="Tutup">×</button></div>
+      <div class="form-grid">
+        <label class="full-field">Barang<select name="productId" id="sale-product" required></select></label>
+        <label>Jumlah<input name="quantity" type="number" min="1" step="1" value="1" required></label>
+        <label>Metode pembayaran<select name="payment" required><option>Tunai</option><option>Transfer</option><option>QRIS</option><option>Kartu</option></select></label>
+        <label>Tanggal<input name="date" type="date" required></label>
+      </div>
+      <p class="form-hint" id="sale-stock-hint"></p>
+      <div class="modal-actions"><button class="button button-secondary" type="button" data-close-dialog>Batal</button><button class="button button-primary" type="submit">Simpan Penjualan</button></div>
+    </form>
+  </dialog>
+
+  <dialog class="modal" id="expense-dialog">
+    <form class="modal-card" id="expense-form">
+      <div class="modal-heading"><div><p class="eyebrow">TRANSAKSI</p><h2>Catat Pengeluaran</h2></div><button class="icon-button" type="button" data-close-dialog aria-label="Tutup">×</button></div>
+      <div class="form-grid">
+        <label class="full-field">Deskripsi<input name="description" required maxlength="120" placeholder="Contoh: Biaya listrik"></label>
+        <label>Kategori<select name="category" id="expense-category" required><option>Operasional</option><option>Pembelian Stok</option><option>Transportasi</option><option>Lainnya</option></select></label>
+        <label>Jumlah (Rp)<input name="amount" type="number" min="1" step="1" required></label>
+        <label>Tanggal<input name="date" type="date" required></label>
+        <label>Catatan<input name="note" maxlength="120" placeholder="Opsional"></label>
+        <div class="form-grid full-field" id="expense-stock-fields" hidden>
+          <label>Barang<select name="productId" id="expense-product"></select></label>
+          <label>Jumlah unit<input name="quantity" id="expense-quantity" type="number" min="1" step="1" value="1"></label>
+        </div>
+      </div>
+      <div class="modal-actions"><button class="button button-secondary" type="button" data-close-dialog>Batal</button><button class="button button-primary" type="submit">Simpan Pengeluaran</button></div>
+    </form>
+  </dialog>
+
+  <div class="toast-region" id="toast-region" aria-live="polite" aria-atomic="true"></div>
+</body>
+</html>
